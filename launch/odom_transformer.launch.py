@@ -35,6 +35,13 @@ def generate_launch_description() -> LaunchDescription:
         output={"both": {"screen", "log", "own_log"}},
         parameters=[transformer_config_path],
     )
+    odom_to_path = Node(
+        package="odom_transformer",
+        executable="odom_to_path_node.py",
+        name="odom_to_path_node",
+        output={"both": {"screen", "log", "own_log"}},
+        parameters=[transformer_config_path],
+    )
     transform = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
@@ -43,4 +50,4 @@ def generate_launch_description() -> LaunchDescription:
         arguments = ['--x', '0', '--y', '0', '--z', '0', '--yaw', '0', '--pitch', '-45', '--roll', '0', '--frame-id', 'body', '--child-frame-id', 'drone0/odom_base']
     )
 
-    return LaunchDescription([odom_transformer,transform])
+    return LaunchDescription([odom_transformer,transform,odom_to_path])
