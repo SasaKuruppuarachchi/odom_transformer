@@ -5,8 +5,8 @@ odom_transformer:
     odoms_to_transform: ["mid360"]
 
     mid360:
-      topic_in: /drone0/rot_odometry
-      source_frame: drone0/rotated_odom
+      topic_in: /Odometry
+      source_frame: body
       topic_out: /drone0/odom_base
 
 
