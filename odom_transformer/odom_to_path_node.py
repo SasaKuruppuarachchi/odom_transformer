@@ -1,8 +1,12 @@
+#!/usr/bin/env python3
+
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import Vector3
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, TransformStamped
+from rclpy.executors import MultiThreadedExecutor
+import tf2_ros
 
 class OdometryToPath(Node):
     def __init__(self):
@@ -12,6 +16,7 @@ class OdometryToPath(Node):
         self.topic_out = '/drone0/odom_base'
         self.path_out = '/drone0/path_base'
         self.parent_frame = 'drone0/map'
+        self.new_frame = 'new_frame'
         
         self.do_path = True
         
@@ -23,7 +28,7 @@ class OdometryToPath(Node):
             self.topic_out,
             self.odometry_callback,
             10)
-        
+        self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
         #for path
         self.path_publisher = self.create_publisher(Path, self.path_out, 10)
         self.path = Path()
@@ -31,20 +36,45 @@ class OdometryToPath(Node):
 
 
     def odometry_callback(self, msg):
-        self.getpath_from_odom(msg)
+        tf = self.getpath_from_odom(msg)
+        self.path_publisher.publish(self.path)
+        self.tf_broadcaster.sendTransform(tf)
         
     def getpath_from_odom(self, msg):
         pose = PoseStamped()
         pose.header = msg.header
+        pose.header.frame_id = self.parent_frame
         pose.pose = msg.pose.pose
         self.path.poses.append(pose)
+        
+        transform = TransformStamped()
+        transform.header.stamp = msg.header.stamp
+        transform.header.frame_id = self.parent_frame
+        transform.child_frame_id = self.new_frame
+        transform.transform.translation.x = pose.pose.position.x
+        transform.transform.translation.y = pose.pose.position.y
+        transform.transform.translation.z = pose.pose.position.z
+        transform.transform.rotation.w = pose.pose.orientation.w
+        transform.transform.rotation.x = pose.pose.orientation.x
+        transform.transform.rotation.y = pose.pose.orientation.y
+        transform.transform.rotation.z = pose.pose.orientation.z
+        return transform
+        
 
 def main(args=None):
-    rclpy.init(args=args)
+    rclpy.init()
     odom_to_path = OdometryToPath()
-    if odom_to_path.do_path: rclpy.spin(odom_to_path)
-    odom_to_path.destroy_node()
-    rclpy.shutdown()
+    executor = MultiThreadedExecutor()
+    executor.add_node(odom_to_path)
+    try:
+        executor.spin()
+    except KeyboardInterrupt:
+        odom_to_path.get_logger().info("Shutting down.")
+        odom_to_path.on_shutdown()
+    finally:
+        odom_to_path.destroy_node()
+        rclpy.shutdown()
+
 
 if __name__ == '__main__':
     print("pubing_start")
