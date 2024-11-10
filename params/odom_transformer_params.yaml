@@ -1,6 +1,7 @@
 odom_transformer:
   ros__parameters:
     base_frame: drone0/odom_base
+    parent_frame: drone0/map
 
     odoms_to_transform: ["mid360"]
 

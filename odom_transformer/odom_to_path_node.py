@@ -43,13 +43,13 @@ class OdometryToPath(Node):
     def getpath_from_odom(self, msg):
         pose = PoseStamped()
         pose.header = msg.header
-        pose.header.frame_id = self.parent_frame
+        #pose.header.frame_id = self.parent_frame
         pose.pose = msg.pose.pose
         self.path.poses.append(pose)
         
         transform = TransformStamped()
-        transform.header.stamp = msg.header.stamp
-        transform.header.frame_id = self.parent_frame
+        transform.header = msg.header
+        #transform.header.frame_id = self.parent_frame
         transform.child_frame_id = self.new_frame
         transform.transform.translation.x = pose.pose.position.x
         transform.transform.translation.y = pose.pose.position.y

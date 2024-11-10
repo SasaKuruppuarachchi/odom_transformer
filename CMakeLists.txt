@@ -30,6 +30,7 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   odom_transformer/transformer_node.py
   odom_transformer/odom_to_path_node.py
+  odom_transformer/publish_to_px4.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

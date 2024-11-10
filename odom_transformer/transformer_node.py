@@ -42,6 +42,7 @@ class TransformerNode(Node):
         super().__init__("odom_transformer")
 
         self._base_frame = self.declare_parameter("base_frame", "base_link").value
+        self._parent_frame = self.declare_parameter("parent_frame", "map_link").value
 
         self._inputs: List[Tuple[str, str, str, str]] = []
         odoms_to_transform = self.declare_parameter("odoms_to_transform", Parameter.Type.STRING_ARRAY).value
@@ -110,6 +111,7 @@ class TransformerNode(Node):
 
     def odom_cb(self, transformer: Transformer, pub: Publisher, data: Odometry) -> None:
         """Callback transforming an Odometry message and publishing the result."""
+        data.header.frame_id = self._parent_frame
         odom = Odometry(header=data.header, child_frame_id=self._base_frame)
         try:
             odom.pose = transformer.transform_pose(data.pose)
