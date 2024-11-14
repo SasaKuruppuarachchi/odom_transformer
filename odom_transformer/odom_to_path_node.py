@@ -13,10 +13,11 @@ class OdometryToPath(Node):
         super().__init__('odom_to_path_node')
         print("pubing_start")
         
+        self.pub_tf = True
         self.topic_out = '/drone0/odom_base'
         self.path_out = '/drone0/path_base'
         self.parent_frame = 'drone0/map'
-        self.new_frame = 'new_frame'
+        if self.pub_tf: self.new_frame = 'odom_base_link'
         
         self.do_path = True
         
@@ -28,7 +29,7 @@ class OdometryToPath(Node):
             self.topic_out,
             self.odometry_callback,
             10)
-        self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
+        if self.pub_tf: self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
         #for path
         self.path_publisher = self.create_publisher(Path, self.path_out, 10)
         self.path = Path()
@@ -38,7 +39,7 @@ class OdometryToPath(Node):
     def odometry_callback(self, msg):
         tf = self.getpath_from_odom(msg)
         self.path_publisher.publish(self.path)
-        self.tf_broadcaster.sendTransform(tf)
+        if self.pub_tf: self.tf_broadcaster.sendTransform(tf)
         
     def getpath_from_odom(self, msg):
         pose = PoseStamped()
@@ -47,18 +48,19 @@ class OdometryToPath(Node):
         pose.pose = msg.pose.pose
         self.path.poses.append(pose)
         
-        transform = TransformStamped()
-        transform.header = msg.header
-        #transform.header.frame_id = self.parent_frame
-        transform.child_frame_id = self.new_frame
-        transform.transform.translation.x = pose.pose.position.x
-        transform.transform.translation.y = pose.pose.position.y
-        transform.transform.translation.z = pose.pose.position.z
-        transform.transform.rotation.w = pose.pose.orientation.w
-        transform.transform.rotation.x = pose.pose.orientation.x
-        transform.transform.rotation.y = pose.pose.orientation.y
-        transform.transform.rotation.z = pose.pose.orientation.z
-        return transform
+        if self.pub_tf:
+            transform = TransformStamped()
+            transform.header = msg.header
+            #transform.header.frame_id = self.parent_frame
+            transform.child_frame_id = self.new_frame
+            transform.transform.translation.x = pose.pose.position.x
+            transform.transform.translation.y = pose.pose.position.y
+            transform.transform.translation.z = pose.pose.position.z
+            transform.transform.rotation.w = pose.pose.orientation.w
+            transform.transform.rotation.x = pose.pose.orientation.x
+            transform.transform.rotation.y = pose.pose.orientation.y
+            transform.transform.rotation.z = pose.pose.orientation.z
+            return transform
         
 
 def main(args=None):
