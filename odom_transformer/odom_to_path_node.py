@@ -17,7 +17,7 @@ class OdometryToPath(Node):
         self.topic_out = '/drone0/odom_base'
         self.path_out = '/drone0/path_base'
         self.parent_frame = 'drone0/map'
-        if self.pub_tf: self.new_frame = 'odom_base_link'
+        if self.pub_tf: self.new_frame = 'odom_base'
         
         self.do_path = True
         
