@@ -71,7 +71,7 @@ def generate_launch_description() -> LaunchDescription:
         executable='static_transform_publisher',
         name='static_transform_publisher',
         output='screen',
-        arguments=['0.117', '0', '-0.025', '0', '0', '0', '1', 'px4_frame', 'camera']
+        arguments=['0.117', '0', '-0.025', '-0.5', '0.5', '-0.5', '0.5', 'odom_base', 'camera']
     )
     transform_body_to_odombase_frame = Node(
         package='tf2_ros',
