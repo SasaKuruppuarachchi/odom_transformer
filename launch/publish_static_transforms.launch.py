@@ -55,7 +55,7 @@ def generate_launch_description() -> LaunchDescription:
         executable='static_transform_publisher',
         name='odom_base_pub',
         output='screen',
-        arguments = [ '0.0795', '0', '0.0323', '0', '0.3826834', '0', '0.9238795', 'drone0/map', 'camera_init'] 
+        arguments = [ '0', '0', '0', '0', '0', '0', '1', 'drone0/map', 'camera_init'] 
     )
     # Lidar IMU
     transform_body_to_livox_frame = Node(
@@ -63,7 +63,7 @@ def generate_launch_description() -> LaunchDescription:
         executable='static_transform_publisher',
         name='static_transform_publisher',
         output='screen',
-        arguments=['0.011', '0.02329', '-0.04412', '0', '0', '0', '1', 'body', 'livox_frame']
+        arguments=['0.0905', '0.02329', '0.00182', '0', '0.3826834', '0', '0.9238795', 'body', 'livox_frame'] #'0.0905', '0.02329', '0.00182'
     )
     # Camera front
     transform_px4_to_camera_frame = Node(
@@ -71,40 +71,23 @@ def generate_launch_description() -> LaunchDescription:
         executable='static_transform_publisher',
         name='static_transform_publisher',
         output='screen',
-        arguments=['0.117', '0', '-0.025', '-0.5', '0.5', '-0.5', '0.5', 'odom_base', 'camera']
-    )
-    transform_body_to_odombase_frame = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_transform_publisher',
-        output='screen',
-        arguments = [ '-0.0795', '0', '-0.0323', '0', '0', '0', '1', 'lidar_base', 'odom_base'] 
-        #arguments=['-0.0795', '0', '-0.0323', '0', '0', '0', '1', 'body', 'odom_base']
+        arguments=['0.117', '0', '-0.025', '-0.5', '0.5', '-0.5', '0.5', 'body', 'camera']
     )
     
-    transform_body_to_lidarbase_frame = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_transform_publisher',
-        output='screen',
-        arguments = [ '0', '0', '0', '0', '-0.3826834', '0', '0.9238795', 'body', 'lidar_base'] 
-        #arguments=['-0.0795', '0', '-0.0323', '0', '0', '0', '1', 'body', 'odom_base']
-    )
     # px4
     transform_baselink_to_px4_frame = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
         name='static_transform_publisher',
         output='screen',
-        arguments=['0', '0', '0', '1', '0', '0', '0', 'odom_base', 'px4_frame']
+        arguments=['0', '0', '0', '1', '0', '0', '0', 'body', 'px4_frame']
     )
     
     
     
 
-    return LaunchDescription([odom_transformer,px4_imu, odom_to_path, transform_drone0map_to_camerainit, \
+    return LaunchDescription([px4_imu, odom_to_path, transform_drone0map_to_camerainit, \
         transform_px4_to_camera_frame, \
         transform_body_to_livox_frame,\
-        transform_body_to_odombase_frame, transform_body_to_lidarbase_frame,\
         transform_baselink_to_px4_frame]\
         )

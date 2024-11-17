@@ -20,16 +20,16 @@ class PX4IMUNode(Node):
         imu_msg = Imu()
         imu_msg.header.stamp.sec = int(msg.timestamp//1e6)
         imu_msg.header.stamp.nanosec = int((msg.timestamp%1e6)*1e3)
-        imu_msg.header.frame_id = 'px4_frame'
+        imu_msg.header.frame_id = 'body'
         
         # Fill the IMU message with data from SensorCombined
         imu_msg.angular_velocity.x = float(msg.gyro_rad[0])
-        imu_msg.angular_velocity.y = float(msg.gyro_rad[1])
-        imu_msg.angular_velocity.z = float(msg.gyro_rad[2])
+        imu_msg.angular_velocity.y = -float(msg.gyro_rad[1])
+        imu_msg.angular_velocity.z = -float(msg.gyro_rad[2])
         
         imu_msg.linear_acceleration.x = float(msg.accelerometer_m_s2[0])
-        imu_msg.linear_acceleration.y = float(msg.accelerometer_m_s2[1])
-        imu_msg.linear_acceleration.z = float(msg.accelerometer_m_s2[2])
+        imu_msg.linear_acceleration.y = -float(msg.accelerometer_m_s2[1])
+        imu_msg.linear_acceleration.z = -float(msg.accelerometer_m_s2[2])
         
         # Publish the IMU message
         self.publisher.publish(imu_msg)

@@ -13,10 +13,10 @@ class OdometryToPath(Node):
         super().__init__('odom_to_path_node')
         print("pubing_start")
         
-        self.pub_tf = True
-        self.topic_out = '/drone0/odom_base'
-        self.path_out = '/drone0/path_base'
-        self.parent_frame = 'drone0/map'
+        self.pub_tf = False
+        self.topic_out = '/Odometry'
+        self.path_out = '/Odometry_path'
+        self.parent_frame = 'camera_init'
         if self.pub_tf: self.new_frame = 'odom_base'
         
         self.do_path = True
