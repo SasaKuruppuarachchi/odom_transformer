@@ -50,20 +50,20 @@ def generate_launch_description() -> LaunchDescription:
         parameters=[],
     )
     # Map
-    transform_drone0map_to_camerainit = Node(
+    transform_drone0map_to_odom = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
         name='odom_base_pub',
         output='screen',
-        arguments = [ '0', '0', '0', '0', '0', '0', '1', 'drone0/map', 'camera_init'] 
+        arguments = [ '0', '0', '0', '0', '0', '0.7071068', '0.7071068' , 'drone0/map', 'odom'] 
     )
     # Lidar IMU
-    transform_body_to_livox_frame = Node(
+    transform_base_link_to_livox_frame = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
         name='static_transform_publisher',
         output='screen',
-        arguments=['0.0905', '0.02329', '0.00182', '0', '0.3826834', '0', '0.9238795', 'body', 'livox_frame'] #'0.0905', '0.02329', '0.00182'
+        arguments=['0.0905', '0.02329', '0.00182', '0', '0.3826834', '0', '0.9238795', 'base_link', 'livox_frame'] #'0.0905', '0.02329', '0.00182'
     )
     # Camera front
     transform_px4_to_camera_frame = Node(
@@ -71,7 +71,7 @@ def generate_launch_description() -> LaunchDescription:
         executable='static_transform_publisher',
         name='static_transform_publisher',
         output='screen',
-        arguments=['0.117', '0', '-0.025', '-0.5', '0.5', '-0.5', '0.5', 'body', 'camera']
+        arguments=['0.117', '0', '-0.025', '-0.5', '0.5', '-0.5', '0.5', 'base_link', 'camera']
     )
     
     # px4
@@ -80,14 +80,14 @@ def generate_launch_description() -> LaunchDescription:
         executable='static_transform_publisher',
         name='static_transform_publisher',
         output='screen',
-        arguments=['0', '0', '0', '1', '0', '0', '0', 'body', 'px4_frame']
+        arguments=['0', '0', '0', '1', '0', '0', '0', 'base_link', 'px4_frame']
     )
     
     
     
 
-    return LaunchDescription([px4_imu, odom_to_path, transform_drone0map_to_camerainit, \
+    return LaunchDescription([odom_transformer, px4_imu, odom_to_path, transform_drone0map_to_odom, \
         transform_px4_to_camera_frame, \
-        transform_body_to_livox_frame,\
+        transform_base_link_to_livox_frame,\
         transform_baselink_to_px4_frame]\
         )

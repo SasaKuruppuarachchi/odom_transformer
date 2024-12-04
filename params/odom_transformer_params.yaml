@@ -1,13 +1,13 @@
 odom_transformer:
   ros__parameters:
-    base_frame: odom_base
-    parent_frame: drone0/map
+    base_frame: px4_frame
+    parent_frame: odom
 
     odoms_to_transform: ["mid360"]
 
     mid360:
-      topic_in: /Odometry
-      source_frame: body
+      topic_in: /dlio/odom_node/odom
+      source_frame: base_link
       topic_out: /drone0/odom_base
 
 
