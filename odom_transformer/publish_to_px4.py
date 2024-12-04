@@ -10,117 +10,108 @@ from geometry_msgs.msg import Quaternion, Vector3
 from rclpy.time import Time
 from rclpy.executors import MultiThreadedExecutor
 
+from scipy.spatial.transform import Rotation as R
+import numpy as np
+from threading import Lock
+
 class VisualInertialOdometryPublisher(Node):
     def __init__(self):
-        super().__init__('publish_to_px4')
-        self.topic_out = '/drone0/odom_base'
+        super().__init__('publish_to_px4_ekf')
+        self.topic_out = '/drone0/odom_base' #'/odometry/filtered'#'/drone0/odom_base'#
+        # Quaternion for 180-degree rotation around the X-axis
+        self.rotation_quaternion = R.from_euler('x', 180, degrees=True).as_quat()
         self.odometry_publisher_ = self.create_publisher(VehicleOdometry, '/fmu/in/vehicle_visual_odometry', 10)
         self.odometry_subscription_ = self.create_subscription(
             Odometry,
             self.topic_out,
             self.odometry_callback,
-            qos_profile=qos_profile_sensor_data
+            10
         )
+        self.px4_msg = VehicleOdometry()
+        self.pub_counter = -1
+        self.do_super_sample = False
+        self.lock = Lock()
 
-        self.timer = self.create_timer(10, self.timer_callback)  # Timer callback every 10 seconds
+        if self.do_super_sample: self.timer = self.create_timer(0.05, self.timer_callback)  # Timer callback every 10 seconds
         
     def odometry_callback(self, msg):
         vehicle_odometry_msg = VehicleOdometry()
-        vehicle_odometry_msg.timestamp = Time.from_msg(msg.header.stamp).nanoseconds
+        vehicle_odometry_msg.timestamp = int((msg.header.stamp.sec * 1e9 + msg.header.stamp.nanosec)//1e3)  #microseconds
 
         vehicle_odometry_msg.pose_frame = 2
         vehicle_odometry_msg.velocity_frame = 2
-        # Set the position information
+        ## Set the position information
         position = msg.pose.pose.position
         # Rotate the position vector by 180 degrees around the x-axis
-        rotated_position = Vector3()
-        rotated_position.x = position.x
-        rotated_position.y = -position.y
-        rotated_position.z = -position.z
+        # rotated_position = Vector3()
+        # rotated_position.x = position.x
+        # rotated_position.y = -position.y
+        # rotated_position.z = -position.z
 
-        vehicle_odometry_msg.position[0] = rotated_position.x
-        vehicle_odometry_msg.position[1] = rotated_position.y
-        vehicle_odometry_msg.position[2] = rotated_position.z
-        #self.get_logger().info([msg.pose.covariance[0],msg.pose.covariance[7],msg.pose.covariance[14]])
-        vehicle_odometry_msg.position_variance = [msg.pose.covariance[0],msg.pose.covariance[7],msg.pose.covariance[14]]
-        vehicle_odometry_msg.orientation_variance = [msg.pose.covariance[21],msg.pose.covariance[28],msg.pose.covariance[35]]
-        vehicle_odometry_msg.velocity_variance = [msg.twist.covariance[0],msg.pose.covariance[7],msg.twist.covariance[14]]
-        # Set the linear velocity information
+        vehicle_odometry_msg.position[0] = position.x
+        vehicle_odometry_msg.position[1] = position.y
+        vehicle_odometry_msg.position[2] = position.z
+        
+        ## Set the linear velocity information
         velocity = msg.twist.twist.linear
         
         # Rotate the velocity vector by 180 degrees around the x-axis
-        rotated_velocity = Vector3()
-        rotated_velocity.x = velocity.x
-        rotated_velocity.y = -velocity.y
-        rotated_velocity.z = -velocity.z
+        # rotated_velocity = Vector3()
+        # rotated_velocity.x = velocity.x
+        # rotated_velocity.y = -velocity.y
+        # rotated_velocity.z = -velocity.z
 
-        vehicle_odometry_msg.velocity[0] = rotated_velocity.x
-        vehicle_odometry_msg.velocity[1] = rotated_velocity.y
-        vehicle_odometry_msg.velocity[2] = rotated_velocity.z
+        vehicle_odometry_msg.velocity[0] = velocity.x
+        vehicle_odometry_msg.velocity[1] = velocity.y
+        vehicle_odometry_msg.velocity[2] = velocity.z
 
-        # Set the angular velocity information
+        ## Set the angular velocity information
         angular_velocity = msg.twist.twist.angular
         
         # Rotate the velocity vector by 180 degrees around the x-axis
-        rotated_angular_velocity = Vector3()
-        rotated_angular_velocity.x = angular_velocity.x
-        rotated_angular_velocity.y = -angular_velocity.y
-        rotated_angular_velocity.z = -angular_velocity.z
+        # rotated_angular_velocity = Vector3()
+        # rotated_angular_velocity.x = angular_velocity.x
+        # rotated_angular_velocity.y = -angular_velocity.y
+        # rotated_angular_velocity.z = -angular_velocity.z
 
-        vehicle_odometry_msg.angular_velocity[0] = rotated_angular_velocity.x
-        vehicle_odometry_msg.angular_velocity[1] = rotated_angular_velocity.y
-        vehicle_odometry_msg.angular_velocity[2] = rotated_angular_velocity.z
+        vehicle_odometry_msg.angular_velocity[0] = angular_velocity.x
+        vehicle_odometry_msg.angular_velocity[1] = angular_velocity.y
+        vehicle_odometry_msg.angular_velocity[2] = angular_velocity.z
 
         # Set the orientation information
         orientation = msg.pose.pose.orientation
+        # original_quaternion = [orientation.x, orientation.y, orientation.z, orientation.w]
         
-        # Rotate the quaternion by 180 degrees around the X-axis
-        euler_angles = self.quaternion_to_euler(orientation)
-        euler_angles[0] += math.pi
-        rotated_quaternion = self.euler_to_quaternion(euler_angles)
-        vehicle_odometry_msg.q[0] = rotated_quaternion[0]
-        vehicle_odometry_msg.q[1] = rotated_quaternion[1]
-        vehicle_odometry_msg.q[2] = rotated_quaternion[2]
-        vehicle_odometry_msg.q[3] = rotated_quaternion[3]
+        # rotation_quaternion = R.from_euler('x', 180, degrees=True).as_quat()
+        # rotated_quaternion = R.from_quat(rotation_quaternion) * R.from_quat(original_quaternion)
+        # rotated_quat = rotated_quaternion.as_quat()
+        vehicle_odometry_msg.q[0] = orientation.w
+        vehicle_odometry_msg.q[1] = orientation.x
+        vehicle_odometry_msg.q[2] = orientation.y
+        vehicle_odometry_msg.q[3] = orientation.z
+        
+        # set variences
+        vehicle_odometry_msg.position_variance = [msg.pose.covariance[0],msg.pose.covariance[7],msg.pose.covariance[14]]
+        vehicle_odometry_msg.orientation_variance = [msg.pose.covariance[21],msg.pose.covariance[28],msg.pose.covariance[35]]
+        vehicle_odometry_msg.velocity_variance = [msg.twist.covariance[0],msg.twist.covariance[7],msg.twist.covariance[14]]
 
         # Publish the vehicle odometry message
-        self.odometry_publisher_.publish(vehicle_odometry_msg)
+        if not self.do_super_sample: 
+            self.odometry_publisher_.publish(vehicle_odometry_msg)
+        else :
+            with self.lock:
+                self.px4_msg = vehicle_odometry_msg
+                self.pub_counter = 0
 
     def timer_callback(self):
-        self.get_logger().info('Publishing visual-inertial odometry')
+        with self.lock:
+            if self.px4_msg is not None:
+                # Perform minimal processing here
+                self.odometry_publisher_.publish(self.px4_msg)
+                self.pub_counter += 1
+            else:
+                self.get_logger().warn('px4_msg is None in timer_callback')
 
-    def quaternion_to_euler(self, quaternion):
-        # Convert quaternion to Euler angles (roll, pitch, yaw)
-        x = quaternion.x
-        y = quaternion.y
-        z = quaternion.z
-        w = quaternion.w
-
-        roll = math.atan2(2 * (w * x + y * z), 1 - 2 * (x**2 + y**2))
-        pitch = math.asin(2 * (w * y - z * x))
-        yaw = math.atan2(2 * (w * z + x * y), 1 - 2 * (y**2 + z**2))
-
-        return [roll, pitch, yaw]
-
-    def euler_to_quaternion(self, euler_angles):
-        # Convert Euler angles (roll, pitch, yaw) to quaternion
-        roll = euler_angles[0]
-        pitch = euler_angles[1]
-        yaw = euler_angles[2]
-
-        cy = math.cos(yaw * 0.5)
-        sy = math.sin(yaw * 0.5)
-        cp = math.cos(pitch * 0.5)
-        sp = math.sin(pitch * 0.5)
-        cr = math.cos(roll * 0.5)
-        sr = math.sin(roll * 0.5)
-
-        w = cy * cp * cr + sy * sp * sr
-        x = cy * cp * sr - sy * sp * cr
-        y = sy * cp * sr + cy * sp * cr
-        z = sy * cp * cr - cy * sp * sr
-
-        return [x, y, z, w]
 
 def main(args=None):
     rclpy.init()
